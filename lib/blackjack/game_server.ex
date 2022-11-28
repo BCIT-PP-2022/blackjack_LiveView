@@ -16,27 +16,27 @@ defmodule GameServer do
 
   # update apis
   def sit(player_id, seat_id) do
-    GenServer.cast(__MODULE__, {:sit, player_id, seat_id})
+    GenServer.call(__MODULE__, {:sit, player_id, seat_id})
   end
 
   def hit(seat_id) do
-    GenServer.cast(__MODULE__, {:hit, seat_id})
+    GenServer.call(__MODULE__, {:hit, seat_id})
   end
 
   def stand(seat_id) do
-    GenServer.cast(__MODULE__, {:stand, seat_id})
+    GenServer.call(__MODULE__, {:stand, seat_id})
   end
 
   def leave(seat_id) do
-    GenServer.cast(__MODULE__, {:leave, seat_id})
+    GenServer.call(__MODULE__, {:leave, seat_id})
   end
 
   def dealer_action() do
-    GenServer.cast(__MODULE__, :dealer_action)
+    GenServer.call(__MODULE__, :dealer_action)
   end
 
   def start_round() do
-    GenServer.cast(__MODULE__, :start_round)
+    GenServer.call(__MODULE__, :start_round)
   end
 
   @impl true
@@ -62,7 +62,7 @@ defmodule GameServer do
 
   # seat id is an atom e.g. :seat1
   @impl true
-  def handle_cast({:sit, player_id, seat_id}, state) do
+  def handle_call({:sit, player_id, seat_id}, _from, state) do
     player = %{
       playerID: player_id,
       hand: [],
@@ -72,11 +72,13 @@ defmodule GameServer do
     }
 
     Logger.info("player_id: #{player_id}, and seat_id #{seat_id}")
-    {:noreply, Map.put(state, seat_id, player)}
+
+    new_state = Map.put(state, seat_id, player)
+    {:reply, new_state, new_state}
   end
 
   @impl true
-  def handle_cast(:start_round, state) do
+  def handle_call(:start_round, _from, state) do
     new_state =
       state
       |> Map.put(:game_in_progress, true)
@@ -89,11 +91,11 @@ defmodule GameServer do
       |> update_seated_player_state(:seat3)
       |> Map.put(:cards, CardServer.get_remaining_deck())
 
-    {:noreply, new_state}
+    {:reply, new_state, new_state}
   end
 
   @impl true
-  def handle_cast({:hit, seat_id}, state) do
+  def handle_call({:hit, seat_id}, _from, state) do
     player = Map.get(state, seat_id)
     new_card = CardServer.deal()
     new_hand = player.hand ++ new_card
@@ -107,30 +109,29 @@ defmodule GameServer do
         |> Map.put(seat_id, player_state)
         |> Map.put(:turn, state.turn + 1)
 
-      {:noreply, new_state}
+      {:reply, new_state, new_state}
     else
-      # do we use hand_value or just hand_options?
       player_state = Map.put(player_state, :hand_options, get_value_of_hand(new_hand))
 
       new_state = Map.put(state, seat_id, player_state)
 
-      {:noreply, new_state}
+      {:reply, new_state, new_state}
     end
   end
 
   @impl true
-  def handle_cast({:stand, _seat_id}, state) do
+  def handle_call({:stand, _seat_id}, _from, state) do
     new_state =
       state
       |> Map.put(:turn, state.turn + 1)
 
-    {:noreply, new_state}
+    {:reply, new_state, new_state}
   end
 
   ## after player turns, would be called repeatedly until game is over
   ## (maybe every once every second?), rerendering for each card dealt
   @impl true
-  def handle_cast(:dealer_action, state) do
+  def handle_call(:dealer_action, _from, state) do
     dealer_hand_value = state.dealer |> best_hand_option()
 
     if dealer_hand_value >= 17 do
@@ -144,17 +145,19 @@ defmodule GameServer do
         |> Map.put(:seat2, update_player_result(state.seat2, dealer_hand_value))
         |> Map.put(:seat3, update_player_result(state.seat3, dealer_hand_value))
 
-      {:noreply, new_state}
+      {:reply, new_state, new_state}
     else
       new_state = Map.put(state, :dealer, state.dealer ++ CardServer.deal())
 
-      {:noreply, new_state}
+      {:reply, new_state, new_state}
     end
   end
 
   @impl true
-  def handle_cast({:leave, seat_id}, state) do
-    {:noreply, Map.put(state, seat_id, nil)}
+  def handle_call({:leave, seat_id}, _from, state) do
+    new_state = Map.put(state, seat_id, nil)
+
+    {:reply, new_state, new_state}
   end
 
   def update_player_result(player, dealer_hand_value) do
