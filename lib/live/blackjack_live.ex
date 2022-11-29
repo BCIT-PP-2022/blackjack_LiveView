@@ -12,7 +12,7 @@ defmodule BlackjackWeb.BlackjackLive do
 
     game_state = GameServer.get_game_state()
 
-    {:ok, assign(socket, playerID: params["name"], playerName: params["name"] , game_state: game_state)}
+    {:ok, assign(socket, playerID: params["name"], playerName: params["name"], result: nil, game_state: game_state)}
   end
 
   @impl true
