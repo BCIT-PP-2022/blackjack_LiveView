@@ -85,13 +85,16 @@ defmodule GameServer do
 
   @impl true
   def handle_cast(:start_round, state) do
+
+    turn = determine_turn(state)
+
     new_state =
       state
       |> Map.put(:game_in_progress, true)
       # new deck / shuffle deck?
       # consider dealing in order of seat1, seat2, seat3, dealer, one card at at time
       |> Map.put(:dealer, CardServer.deal(2))
-      |> Map.put(:turn, 1)
+      |> Map.put(:turn, turn)
       |> update_seated_player_state(:seat1)
       |> update_seated_player_state(:seat2)
       |> update_seated_player_state(:seat3)
@@ -113,6 +116,7 @@ defmodule GameServer do
       new_state =
         state
         |> Map.put(seat_id, player_state)
+        # TODO: Need to update this to using determine_turn(game_state) and not just add 1
         |> Map.put(:turn, state.turn + 1)
 
       {:noreply, new_state}
@@ -130,6 +134,7 @@ defmodule GameServer do
   def handle_cast({:stand, _seat_id}, state) do
     new_state =
       state
+      # TODO: Need to update this to using determine_turn(game_state) and not just add 1
       |> Map.put(:turn, state.turn + 1)
 
     {:noreply, new_state}
@@ -210,20 +215,24 @@ defmodule GameServer do
     end
   end
 
-  defp update_seated_player_state(game_state, seatId) do
-    cards_dealt = CardServer.deal(2)
+  defp determine_turn(game_state) do
+    # Need to figure out logic for determining who's turn it is
+    # need to update hit and stand logic as well with this function
+    1
+  end
 
+  defp update_seated_player_state(game_state, seatId) do
+
+    hand = CardServer.deal(2)
     case Map.get(game_state, seatId) do
       nil ->
         game_state
-
-      %{:hand => existing_hand} = player ->
-        updated_hand = existing_hand ++ cards_dealt
-
+      player ->
         p =
           player
-          |> Map.put(:hand, updated_hand)
-          |> Map.put(:hand_options, get_value_of_hand(updated_hand))
+          |> Map.put(:hand, hand)
+          |> Map.put(:hand_options, get_value_of_hand(hand))
+          |> Map.put(:result, nil)
 
         Map.put(game_state, seatId, p)
     end
