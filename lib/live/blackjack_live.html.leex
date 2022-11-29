@@ -39,13 +39,15 @@
             <button phx-click="start_round">Start Game</button>
         <% end %>
 
-         <%= case @result do %>
-                <% nil -> %><p>Test</p>
-                <% :bust -> %><p>Busted</p>
-                <% :lose -> %><p>You lost</p>
-                <% :win -> %><p>You win</p>
-        <% end %>
-
+        <!-- NOTE: We could probably use LiveView.Components to render this since it's reused in player section-->
+        <div>
+            <%= case @result do %>
+                    <% nil -> %><p></p>
+                    <% :bust -> %><p>Busted >.<</p>
+                    <% :lose -> %><p>You lost D:</p>
+                    <% :win -> %><p>You win :D </p>
+            <% end %>
+        </div>
     <!-- PLAYER SECTION -->
 
     </div>
@@ -83,7 +85,7 @@
                                 <button class = "hit" phx-value-seatid="<%= :"seat#{i}" %>" phx-click="hit">hit</button>
                                 <button class ="stand" phx-value-seatid="<%= :"seat#{i}" %>" phx-click="stand">stand</button>
                             <% else %>
-                            <div>Wait!</div>
+                                 <p>Wait - can be removed</p>
                             <% end %>
                     <% end %>
                     </div>

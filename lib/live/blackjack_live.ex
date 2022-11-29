@@ -46,9 +46,8 @@ defmodule BlackjackWeb.BlackjackLive do
   @impl true
   def handle_event("start_round", params, socket) do
     GameServer.start_round()
-    BlackjackWeb.Endpoint.broadcast("game_state", "game_state_change", :game_state_change)
+    BlackjackWeb.Endpoint.broadcast("game_state", "start_round", GameServer.get_game_state())
     {:noreply, socket}
-
   end
 
   @impl true
@@ -75,8 +74,6 @@ defmodule BlackjackWeb.BlackjackLive do
       false -> {:noreply, assign(socket, game_state: game_state_new)}
     end
 
-    {:noreply, assign(socket, game_state: game_state_new)}
-
   end
 
   @impl true
@@ -89,8 +86,14 @@ defmodule BlackjackWeb.BlackjackLive do
     {:noreply, assign(socket, result: result, game_state: new_game_state)}
   end
 
+  @impl true
   def handle_info(%{event: "user_leaving_game", payload: _}, socket) do
-    {:noreply, assign(socket, seat: nil, game_state: GameServer.get_game_state)}
+    {:noreply, assign(socket, seat: nil, result: nil, game_state: GameServer.get_game_state)}
+  end
+
+  @impl true
+  def handle_info(%{event: "start_round", payload: new_game_state}, socket) do
+    {:noreply, assign(socket, result: nil, game_state: new_game_state)}
   end
 
   @impl true
